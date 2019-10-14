@@ -1,0 +1,96 @@
+
+# Определяем алфавит и типы гласных
+define Consonant b | c | d | f | g | h | j | k | l | m | n | p | q | r | s | t | v | w | x | z ;
+define FrontVowel ä | ö | y ;
+define NeutralVowel e | i ;
+define BackVowel a | o | u ;
+define Vowel FrontVowel | NeutralVowel | BackVowel | A | E ;
+define Letter Vowel | Consonant ;
+
+# Определяем грамматические характеристики существительных
+define Case "+Nom" | "+Gen" | "+Part" | "+In" | "+El" | "+Ill" | "+Ad" | "+Abl" | "+All" ;
+define Number "+Sg" | "+Pl" ; 
+
+# Определяем тип основы (по типу гласных)
+define FrontStem [ Consonant* [ FrontVowel | NeutralVowel ] ]+ Consonant* ;
+define BackStem [ Consonant* [ BackVowel | NeutralVowel ] ]* [ Consonant* BackVowel ] [Consonant* [ BackVowel | NeutralVowel ] ]* Consonant*;
+define Stem Letter+;
+
+define Input Stem Number Case ;
+
+# Постановка в номинатив
+define NomPl "+Pl" "+Nom" -> "^" t || _ ;
+define NomSg "+Sg" "+Nom" -> "^" || _ ;
+define Nominatives NomPl .o. NomSg ;
+
+# Постановка в генетив
+define GenDen "+Gen" -> d e n || Vowel Vowel "+Pl" _ ;
+define Gen "+Gen" -> E n || _ ;
+define Genetive GenDen .o. Gen ;
+
+# Постановка в партитив
+define PartTa "+Part" -> t A || [ Consonant Vowel Vowel | Consonant ] Number _ ;
+define PartA "+Part" -> A || _ ;
+
+# Постановка в иллатив
+define InsertH [..] -> h || .#. Consonant+ Vowel+ "+Sg" _ "+Ill";
+define IllSeen "+Ill" -> s e e n || Vowel+ Consonant+ [ a a | o o | u u | e e | i i | ä ä | ö ö | y y ] "+Sg" _ ;
+define IllPl "+Ill" -> h i n || Vowel "+Pl" _ ;
+
+# Согласование гласного суффикса с гласным корня в ед.числе
+define Illa "+Ill" -> a n || a "+Sg" h^{0,1} _ ;
+define Illo "+Ill" -> o n || o "+Sg" h^{0,1} _ ;
+define Illu "+Ill" -> u n || u "+Sg" h^{0,1} _ ;
+define Ille "+Ill" -> e n || e "+Sg" h^{0,1} _ ;
+define Illi "+Ill" -> i n || i "+Sg" h^{0,1} _ ;
+define Illä "+Ill" -> ä n || ä "+Sg" h^{0,1} _ ;
+define Illö "+Ill" -> ö n || ö "+Sg" h^{0,1} _ ;
+define Illy "+Ill" -> y n || y "+Sg" h^{0,1} _ ;
+define Ill Illa .o. Ille .o. Illi .o. Illo .o. Illu .o. Illy .o. Illä .o. Illö ;
+
+define Illative InsertH .o. IllPl .o. IllSeen .o. Ill ;
+
+# Остальные локативные
+define LocativeRest "+In" -> s s A , "+El" -> s t A , "+Ad" -> l l A , "+Abl" -> l t A , "+All" -> l l e || _ ;
+define LocativeCases LocativeRest  .o. Illative ;
+
+define OtherCases PartTa .o. PartA .o. LocativeCases ;
+
+# Чередования гласных в основе
+define Sg "+Sg" -> "^" || _ ;
+define OmitA ä -> 0, i -> 0 || _ "+Pl";
+define Ai2Oi a -> o || [ a | e | i ] Vowel* Consonant+ _ "+Pl";
+define Ai2i a -> 0 || [ o | u ] Vowel* Consonant+ _ "+Pl";
+define OmitFirst Vowel -> 0 || _ Vowel "+Pl" Consonant ;
+define Pl "+Pl" -> "^" i || _ ;
+
+define NumberInfl Sg .o. OmitA .o. Ai2i .o. Ai2Oi .o. OmitFirst .o. Pl ;
+
+# Сингармонизм
+define JotPl i -> j || Vowel "^"* _ "^"* Vowel ;
+define HarmonyBack A -> a || BackStem "^" Letter* _ ;
+define HarmonyFront A -> ä || FrontStem "^" Letter* _ ;
+
+define Phonetics JotPl .o. HarmonyBack .o. HarmonyFront ;
+
+# Чередования согласных в снове и опущение Е
+define DoublePTK p p -> p , t t -> t , k k -> k || Letter _ "^"* Vowel "^"* Consonant [ .#. | Consonant ] ;
+define SingleP p -> v || Vowel _ "^"* Vowel "^"* Consonant [ .#. | Consonant ] ;
+define SingleTK t -> d , k -> 0 || Letter _ "^"* Vowel "^"* Consonant [ .#. | Consonant ] ; 
+define TwoLetter m p -> m m , n t -> n n , n k -> n g , l t -> l l , r t -> r r || Letter _ "^"* Vowel "^"* Consonant [ .#. | Consonant ] ;
+define ThreeLetter l k e -> l j e , r k e -> r j e , h k e -> h j e , u k u -> u v u || Letter _ "^"* Consonant [ .#. | Consonant ] ;
+define N2M i n -> i m , t ö n -> t t ö m || _ "^" Vowel;
+define EOmit E -> 0 || Vowel "^" _ ;
+define EReal E -> e || _ ;
+
+define Alternations N2M  .o. EOmit .o. EReal .o. ThreeLetter .o. TwoLetter .o. SingleP .o. SingleTK .o. DoublePTK ;
+
+# Вся система сколнения существительных
+define Affixes Nominatives .o. Genetive .o. OtherCases .o. NumberInfl .o. Alternations .o. Phonetics;
+
+# Удаление морфологической метаразметки
+define Cleanup "^" -> 0 || _ ;
+
+# Соберем все вместе
+define Grammar Input .o. Affixes .o. Cleanup ;
+push Grammar
